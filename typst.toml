@@ -1,0 +1,11 @@
+# typst.toml
+[package]
+name = "ctz-plot-helper"
+version = "0.1.0"
+entrypoint = "src/ctz-plot-helper.typ"
+authors = ["Mikaël MAUNIER", "Claude", "DeepSeek"]
+license = "MIT"
+description = "Simplifie l'utilisation de ctz-plot pour les cours de lycée"
+repository = "https://github.com/mmaunier/ctz-plot-helper"
+keywords = ["plot", "ctz-plot", "cetz", "education"]
+compiler = "0.15.0"
