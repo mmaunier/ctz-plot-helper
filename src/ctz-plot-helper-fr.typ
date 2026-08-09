@@ -930,7 +930,7 @@
   /// -> dictionary
   extraStyles: setExtraStyles(),
   
-  /// Affiche/masque (O ; vec(i), vec(j)) et la graduation "1" (voir description).
+  /// Affiche/masque (O ; vec(i), vec(j)) et la graduation "1" ; si false, l'origine est étiquetée "0" (sans le rouge de O).
   /// -> bool
   repere: true,
   
@@ -954,6 +954,13 @@
     v => if v != 1 { text(size: 8pt)[#v] }
   } else {
     v => text(size: 8pt)[#v]
+  }
+
+  // Avec repere: false, l'origine est étiquetée "0" (et sans le rouge de O).
+  let axes = if repere {
+    axes
+  } else {
+    axes + (shared-zero: text(size: 8pt)[$0$])
   }
   
   let plot-options = setPlot(

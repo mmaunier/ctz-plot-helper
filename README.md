@@ -9,10 +9,11 @@ A Typst helper that simplifies drawing mathematical plots with [CeTZ](https://ce
 ## Features
 
 - **All-in-one figure builder** — `newFig(...)` computes the canvas scale factors for you, opens the canvas, applies the axis style, and runs your `plot.add(...)` / `plot.annotate(...)` calls.
-- **Automatic frame `(O ; vec(i), vec(j))`** — `repere: true` (default) draws the basis vectors and hides the redundant `"1"` tick labels.
+- **Automatic frame `(O ; vec(i), vec(j))`** — `repere: true` (default) draws the basis vectors and hides the redundant `"1"` tick labels; with `repere: false` the origin is labeled `0` instead of the red `O`.
 - **Anchored helpers drawn outside the plot** — place markers, labels, polylines and derivative arrows in *real canvas units* so they stay geometrically correct in an anisotropic frame.
 - **Scale correction** — real slopes are converted to on-screen slopes (`anchored-derivative-arrow`), so tangents stay visually correct even when the x and y axes have different scales.
 - **No single-point marker bug** — `point-marker` draws isolated points inside `plot.annotate` with the same shape vocabulary as `plot.add`, without cetz-plot's single-point bug.
+- **Scatter plots in one call** — `scatter(...)` draws a marker at each point of a list, with a friendly marker vocabulary (`mark-fill`/`mark-stroke` instead of a raw `mark-style` dictionary).
 
 ## Requirements
 
@@ -94,7 +95,7 @@ All-in-one figure builder. Computes `sx`, `sy` automatically, opens the canvas, 
 | `y-min`, `y-max` | `float` \| `int` | `-3.5`, `3.0` | Bounds of the y domain |
 | `axes` | `dictionary` | `setAxes()` | Axis style, see `setAxes()` |
 | `extraStyles` | `dictionary` | `setExtraStyles()` | Styles of the basis arrows (i, j), see `setExtraStyles()` |
-| `repere` | `bool` | `true` | Shows/hides `(O ; vec(i), vec(j))` and the `"1"` graduation |
+| `repere` | `bool` | `true` | Shows/hides `(O ; vec(i), vec(j))` and the `"1"` graduation; if `false`, the origin is labeled `"0"` instead of `O` (no red) |
 | `plot` | `dictionary` | `(:)` | Override of the `setPlot()` options (e.g. `(x-tick-step: 0.5)`) |
 | `extra` | `function` \| `none` | `none` | `(sx, sy) => content`, drawn after the plot, inside the canvas |
 | `body` | `content` | — | Content placed INSIDE `plot.plot` (`plot.add`, `plot.add-anchor`, `plot.annotate`...) |
@@ -239,6 +240,37 @@ Marks a single point `(x, y)` **in data units** — to be used **inside** `plot.
 | `fill` | `color` | `red` | Fill color or stroke color |
 | `stroke` | `none` \| `stroke` \| `color` | `none` | Outline (`none` = no outline, just fill) |
 | `angle` | `angle` | `0deg` | Symbol orientation |
+
+### `scatter`
+
+Scatter plot: draws a marker at each point of `points`. To be used like `plot.add(...)`, **inside** `plot.plot(...)` — i.e. directly inside `newFig`'s `body`. Coordinates stay in data units; cetz-plot handles the scaling. Thin wrapper around `plot.add(...)` with a friendlier marker vocabulary (`mark-fill`/`mark-stroke` instead of a raw `mark-style` dictionary).
+
+```typst
+#newFig(
+  size: (8, 6),
+  x-min: 0,
+  x-max: 7.5,
+  y-min: 0,
+  y-max: 5.5,
+  repere: false,
+  {
+    scatter(
+      ((1, 4.8), (2, 3.8), (4, 3), (6, 1.7), (7, 1.3)),
+      mark: "x",
+      mark-stroke: 1.2pt + blue,
+      mark-size: 0.2,
+    )
+  },
+)
+```
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `points` | `array` | — | List of `(x, y)` point tuples, in data units |
+| `mark` | `string` | `"o"` | Marker shape (`"o"`, `"x"`, `"+"`, `"square"`, `"triangle"`, `"diamond"`...) |
+| `mark-fill` | `color` | `black` | Marker fill color |
+| `mark-stroke` | `none` \| `stroke` \| `color` | `1pt + black` | Marker outline (`none` = no outline) |
+| `mark-size` | `float` \| `int` | `0.1` | Marker size, forwarded to `plot.add(mark-size:)` |
 
 ### `draw-mark-shape`
 

@@ -924,7 +924,7 @@
   /// -> dictionary
   extraStyles: setExtraStyles(),
 
-  /// Shows/hides (O ; vec(i), vec(j)) and the "1" graduation (see description).
+  /// Shows/hides (O ; vec(i), vec(j)) and the "1" graduation ; if false, the origin is labeled "0" (without the red of O).
   /// -> bool
   repere: true,
 
@@ -948,6 +948,13 @@
     v => if v != 1 { text(size: 8pt)[#v] }
   } else {
     v => text(size: 8pt)[#v]
+  }
+
+  // With repere: false, the origin is labeled "0" (without the red of O).
+  let axes = if repere {
+    axes
+  } else {
+    axes + (shared-zero: text(size: 8pt)[$0$])
   }
 
   let plot-options = setPlot(
