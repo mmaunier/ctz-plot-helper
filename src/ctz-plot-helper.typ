@@ -172,6 +172,63 @@
   draw-mark-shape(x, y, symbol: symbol, size: size, fill: fill, stroke: stroke, angle: angle)
 }
 
+/// Scatter plot: draws a marker at each point of `points`. To be used
+/// like plot.add(...), INSIDE plot.plot(...) — i.e. directly inside
+/// newFig's `body` — coordinates stay in DATA units, cetz-plot handles
+/// the scaling itself. Thin wrapper around plot.add(...), with a
+/// friendlier point-marker vocabulary (mark-fill/mark-stroke instead of
+/// a raw mark-style dictionary).
+///
+/// - points (array): list of (x, y) point tuples, in data units
+/// - mark (str): marker shape ("o", "x", "+", "square", "triangle", "diamond"...), forwarded to plot.add(mark:)
+/// - mark-fill (color): marker fill color
+/// - mark-stroke (none, stroke, color): marker outline (none = no outline)
+/// - mark-size (float, int): marker size, forwarded to plot.add(mark-size:)
+///
+/// ```example
+/// #newFig(
+///   {
+///     scatter(
+///       ((1, 4.8), (2, 3.8), (4, 3), (6, 1.7), (7, 1.3)),
+///       mark: "x",
+///       mark-fill: blue,
+///       mark-size: 0.2,
+///     )
+///   },
+/// )
+/// ```
+///
+/// -> array
+#let scatter(
+  /// List of (x, y) point tuples, in data units.
+  /// -> array
+  points,
+  
+  /// Marker shape ("o", "x", "+", "square", "triangle", "diamond"...), forwarded to plot.add(mark:).
+  /// -> string
+  mark: "o",
+  
+  /// Marker fill color.
+  /// -> color
+  mark-fill: black,
+  
+  /// Marker outline (none = no outline).
+  /// -> none | stroke | color
+  mark-stroke: 1pt + black,
+  
+  /// Marker size, forwarded to plot.add(mark-size:).
+  /// -> float | int
+  mark-size: 0.1,
+) = {
+  plot.add(
+    points,
+    style: (stroke: none),
+    mark: mark,
+    mark-style: (fill: mark-fill, stroke: mark-stroke),
+    mark-size: mark-size,
+  )
+}
+
 /// Scale factors (canvas units per data unit) of a plot whose physical
 /// size and (fixed) domain of both axes are known. Used to convert a real
 /// slope into a visual on-screen slope.

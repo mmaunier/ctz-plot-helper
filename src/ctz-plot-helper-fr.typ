@@ -172,6 +172,68 @@
   draw-mark-shape(x, y, symbol: symbol, size: size, fill: fill, stroke: stroke, angle: angle)
 }
 
+
+/// Nuage de points : trace un marqueur à chacun des points de `points`.
+/// À utiliser comme plot.add(...), DANS plot.plot(...) — c'est-à-dire
+/// directement dans le `body` de newFig — les coordonnées restent en
+/// unités de DONNÉES, cetz-plot gère la mise à l'échelle lui-même.
+/// Enveloppe légère autour de plot.add(...), avec un vocabulaire de
+/// marqueur plus accessible (mark-fill/mark-stroke au lieu d'un
+/// dictionnaire mark-style brut).
+///
+/// - points (array): liste de couples de points (x, y), en unités de données
+/// - mark (str): forme du marqueur ("o", "x", "+", "square", "triangle", "diamond"...), transmise à plot.add(mark:)
+/// - mark-fill (color): couleur de remplissage du marqueur
+/// - mark-stroke (none, stroke, color): contour du marqueur (none = pas de contour)
+/// - mark-size (float, int): taille du marqueur, transmise à plot.add(mark-size:)
+///
+/// ```example
+/// #newFig(
+///   {
+///     scatter(
+///       ((1, 4.8), (2, 3.8), (4, 3), (6, 1.7), (7, 1.3)),
+///       mark: "x",
+///       mark-fill: blue,
+///       mark-size: 0.2,
+///     )
+///   },
+/// )
+/// ```
+///
+/// -> array
+#let scatter(
+  /// Liste de couples de points (x, y), en unités de données.
+  /// -> array
+  points,
+  
+  /// Forme du marqueur ("o", "x", "+", "square", "triangle", "diamond"...), transmise à plot.add(mark:).
+  /// -> string
+  mark: "o",
+  
+  /// Couleur de remplissage du marqueur.
+  /// -> color
+  mark-fill: black,
+  
+  /// Contour du marqueur (none = pas de contour).
+  /// -> none | stroke | color
+  mark-stroke: 1pt + black,
+  
+  /// Taille du marqueur, transmise à plot.add(mark-size:).
+  /// -> float | int
+  mark-size: 0.1,
+) = {
+  plot.add(
+    points,
+    style: (stroke: none),
+    mark: mark,
+    mark-style: (fill: mark-fill, stroke: mark-stroke),
+    mark-size: mark-size,
+  )
+}
+
+
+
+
 /// Facteurs d'échelle (unités canvas par unité de donnée) d'un plot dont
 /// on connaît la taille physique et le domaine (fixe) des deux axes. Sert
 /// à convertir une pente réelle en pente visuelle à l'écran.
