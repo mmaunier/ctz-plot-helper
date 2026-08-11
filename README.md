@@ -188,27 +188,31 @@ anchored-point(
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `origine` | `string` \| `array` | — | Anchor `"plot.<name>"`, or `(x, y)` in data units |
-| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | `(marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle)` — see `draw-mark-shape`; `none` = no point |
+| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Marker dict — **two accepted vocabularies**: internal (`marker-symbol`, `marker-size`, `marker-fill`, `marker-stroke`, `marker-angle`) or cetz/`plot.add` style (`mark`, `mark-fill`, `mark-stroke`, `mark-size`); see `draw-mark-shape`; `none` = no point |
 | `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | `(label-text, label-distance, label-anchor, label-position, label-rotate, label-styles)`; `none` = no label |
 
 ### `anchored-points`
 
-Places several points (and, optionally, their labels) in one call. Each item is a pair `(origine, label-text)` — same `origine` vocabulary as `anchored-point`, and `label-text` is either the text/content for that point's label, or `none` to skip the label for that point. The `marker:`/`label:` options are shared by every point; `label: none` (or `marker: none`) turns labels (or markers) off for **all** points at once.
+Places several points (and, optionally, their labels) in one call. Each item may be either:
+- a **bare point** — a coordinate `(x, y)` or a bare anchor `"plot.<name>"` — with no label;
+- a **pair** `(origine, label-text)` — same `origine` vocabulary as `anchored-point`, and `label-text` is either the text/content for that point's label, or `none` to skip the label for that point.
+
+The two forms can be mixed freely: each item is detected automatically (an item whose first element is itself an array/string is treated as `(origine, label-text)`). The `marker:`/`label:` options are shared by every point; `label: none` (or `marker: none`) turns labels (or markers) off for **all** points at once.
 
 ```typst
 anchored-points(
-  ((1, 1), "A"),
-  ((2, 4), "B"),
-  ((3, 2), none), // marker only, no label for this point
-  marker: (marker-fill: red),
+  (1, 1),             // bare point, no label
+  ((2, 4), "B"),      // point with label
+  ((3, 2), none),     // point, label explicitly disabled
+  marker: (mark: "o", mark-fill: red, mark-stroke: 1pt + blue),
   label: (label-position: 90deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
 )
 ```
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `..points` | `array` | — | Pairs `(origine, label-text)`, one per point — `label-text` may be `none` |
-| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Shared marker options, see `anchored-point`; `none` = no markers at all |
+| `..points` | `array` | — | Per point: a bare `(x, y)` / anchor string, or a pair `(origine, label-text)` — `label-text` may be `none` |
+| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Shared marker options (`marker-*` or cetz `mark:*` vocabulary), see `anchored-point`; `none` = no markers at all |
 | `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | Shared label options (`label-text` overridden per point), see `anchored-point`; `none` = no labels at all |
 
 ### `anchored-lines`
@@ -342,6 +346,8 @@ The detailed history is in [`CHANGELOG.md`](CHANGELOG.md).
 - **Renamed** `anchored-point-marker` → `anchored-point`; the old simple-circle `anchored-point` was removed.
 - **Added** `scatter(...)` for one-call scatter plots.
 - **Changed** `repere: false` now labels the origin `0` instead of the red `O`.
+- **Changed** `anchored-points(...)` now accepts a list of **bare points** (coordinate or anchor, no label) or **points paired with a label** — the two forms can be mixed freely.
+- **Fixed** markers no longer worked in `anchored-points(...)` (they were not drawn); the `marker:` dictionary is now normalized correctly and also accepts the cetz/`plot.add` vocabulary (`mark`, `mark-fill`, `mark-stroke`, `mark-size`).
 
 ### 0.1.0
 

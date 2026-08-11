@@ -188,12 +188,12 @@
 /// - mark-size (float, int): taille du marqueur, transmise à plot.add(mark-size:)
 ///
 /// ```example
-/// #newFig(
+/// #newFig(x-min : 0, x-max:8, y-min: 0, y-max: 5,
 ///   {
 ///     scatter(
 ///       ((1, 4.8), (2, 3.8), (4, 3), (6, 1.7), (7, 1.3)),
 ///       mark: "x",
-///       mark-fill: blue,
+///       mark-stroke: blue,
 ///       mark-size: 0.2,
 ///     )
 ///   },
@@ -362,6 +362,37 @@
 }
 
 
+// Détection d'une coordonnée nue (x, y) : un tableau de deux nombres.
+#let _is-bare-coord(v) = (
+  type(v) == array
+    and v.len() == 2
+    and (type(v.at(0)) == int or type(v.at(0)) == float)
+    and (type(v.at(1)) == int or type(v.at(1)) == float)
+)
+
+// Normalise le dictionnaire `marker:` — accepté sous deux vocabulaires :
+//   - interne : (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle)
+//   - cetz (comme plot.add) : (mark, mark-fill, mark-stroke, mark-size)
+// Renvoie un dictionnaire complet (défauts fusionnés) au vocabulaire interne,
+// ou `none` si `marker` vaut `none`.
+#let _normalize-marker(marker) = {
+  if marker == none { return none }
+  if marker.at("mark", default: none) != none {
+    // style cetz : conversion vers le vocabulaire interne
+    (
+      marker-symbol: marker.at("mark", default: "o"),
+      marker-size: marker.at("mark-size", default: 0.06),
+      marker-fill: marker.at("mark-fill", default: red),
+      marker-stroke: marker.at("mark-stroke", default: none),
+      marker-angle: marker.at("marker-angle", default: 0deg),
+    )
+  } else {
+    // style interne : fusion simple avec les défauts
+    (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg) + marker
+  }
+}
+
+
 /// Marqueur et/ou étiquette optionnels à une ancre du plot OU à des
 /// coordonnées (x, y) en unités du repère (O ; i, j) — voir resolve-origine.
 /// Récupère automatiquement sx, sy (calculés par newFig). À appeler EN DEHORS
@@ -369,7 +400,7 @@
 /// vaut `none`, on ne le dessine pas (les deux à `none` → rien du tout).
 ///
 /// - origine (str, array): ancre "plot.<nom>", ou (x, y) en unités de données
-/// - marker (dictionary, none): (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle) — voir draw-mark-shape ; none = pas de point
+/// - marker (dictionary, none): dictionnaire de marqueur — deux vocabulaires acceptés (interne `marker-*` ou cetz `mark:*`), voir draw-mark-shape ; none = pas de point
 /// - label (dictionary, none): (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = pas d'étiquette
 ///
 /// ```example
@@ -391,13 +422,23 @@
   /// -> string | array
   origine,
 
-  /// (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle) — voir draw-mark-shape ; none = pas de point.
+  /// Dictionnaire de marqueur — deux vocabulaires acceptés, voir draw-mark-shape ;
+  /// `none` = pas de point :
+  ///   - interne : (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle)
+  ///   - style cetz/plot.add : (mark, mark-fill, mark-stroke, mark-size)
   /// -> dictionary | none
   marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
 
   /// (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = pas d'étiquette.
   /// -> dictionary | none
-  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
+  label: (
+    label-text: "",
+    label-distance: 8pt,
+    label-anchor: "center",
+    label-position: 0deg,
+    label-rotate: 0deg,
+    label-styles: (:),
+  ),
 ) = {
   import draw: content, get-ctx
 
@@ -406,16 +447,23 @@
     return ()
   }
 
-  // Fusion avec les valeurs par défaut : on ne fournit que les clés à surcharger
-  let m = if marker == none {
-    none
-  } else {
-    (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg) + marker
-  }
+  // Normalise le dictionnaire marker (deux vocabulaires acceptés) puis
+  // fusionne les défauts ; `none` = pas de point.
+  let m = _normalize-marker(marker)
   let l = if label == none {
     none
   } else {
-    (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)) + label
+    (
+      (
+        label-text: "",
+        label-distance: 8pt,
+        label-anchor: "center",
+        label-position: 0deg,
+        label-rotate: 0deg,
+        label-styles: (:),
+      )
+        + label
+    )
   }
 
   get-ctx(ctx => {
@@ -464,54 +512,74 @@
 
 
 /// Dessine plusieurs points (et, optionnellement, leurs étiquettes) en un
-/// seul appel. Chaque élément est un couple (origine, label-text) — même
-/// vocabulaire `origine` que anchored-point (ancre "plot.<nom>",
-/// ou (x, y) en unités de données), et label-text est soit le texte/contenu
-/// de l'étiquette DE CE point, soit `none` pour sauter l'étiquette de ce
-/// point précisément. Les options `marker:`/`label:` sont partagées par
-/// tous les points (même vocabulaire que anchored-point) —
-/// `label: none` (ou `marker: none`) désactive les étiquettes (ou les
-/// marqueurs) pour TOUS les points d'un coup, quel que soit le label-text
-/// de chaque couple. Les options `label:` partagées acceptent aussi
-/// `label-styles`, un dictionnaire déversé dans `text(...)` pour styler
-/// toutes les étiquettes d'un coup (un `label-text` explicitement stylé
-/// reste prioritaire).
+/// seul appel. Chaque élément peut être :
+///   - une coordonnée nue (x, y) ou une ancre nue "plot.<nom>" : pas
+///     d'étiquette ;
+///   - un couple (origine, label-text) : même vocabulaire `origine` que
+///     anchored-point, et label-text est soit le texte/contenu de
+///     l'étiquette DE CE point, soit `none` pour sauter l'étiquette de ce
+///     point.
+/// Les deux formes peuvent être mélangées librement : chaque élément est
+/// détecté automatiquement (un élément dont le premier élément est lui-même
+/// un tableau/une chaîne est traité comme (origine, label-text)). Les
+/// options `marker:`/`label:` sont partagées par tous les points (même
+/// vocabulaire que anchored-point) — `label: none` (ou `marker: none`)
+/// désactive les étiquettes (ou les marqueurs) pour TOUS les points d'un
+/// coup, quel que soit ce que dit chaque élément. Les options `label:`
+/// partagées acceptent aussi `label-styles`, un dictionnaire déversé dans
+/// `text(...)` pour styler toutes les étiquettes d'un coup (un `label-text`
+/// explicitement stylé reste prioritaire).
 ///
-/// - points (array): couples (origine, label-text), un par point — label-text peut valoir none
-/// - marker (dictionary, none): options de marqueur partagées, voir anchored-point ; none = aucun marqueur du tout
-/// - label (dictionary, none): options d'étiquette partagées (label-text ici est surchargé par point, label-styles injecté dans text()), voir anchored-point ; none = aucune étiquette du tout
+/// - points (array): par point, une coordonnée nue (x, y) / une ancre, ou un couple (origine, label-text) — label-text peut valoir none
+/// - marker (dictionary, none): options de marqueur partagées (vocabulaire marker-* ou cetz mark:*), voir anchored-point ; none = aucun marqueur du tout
+/// - label (dictionary, none): options d'étiquette partagées (label-text ici est surchargé par point, label-styles est déversé dans text()), voir anchored-point ; none = aucune étiquette du tout
 ///
 /// ```example
-/// #newFig(
+/// #newFig(y-min: -1, y-max: 5,
 ///   extra: (sx, sy) => {
 ///     import draw: *
 ///     anchored-points(
-///       ((1, 1), "A"),
-///       ((2, 4), "B"),
-///       ((3, 2), none), // marker seul, pas de label pour ce point
-///       marker: (marker-fill: red),
-///       label: (label-position: 90deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
+///       (1, 1),             // point seul, sans label
+///       ((2, 4), "B"),      // point avec label
+///       ((3, 2), none),     // point seul, label explicitement désactivé
+///       marker: (mark: "o", mark-fill: red, mark-stroke: 1pt + blue),
+///       label: (label-position: -45deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
 ///     )
 ///   },
-///   { plot.add(domain: (-2, 2), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
+///   { plot.add(domain: (-3, 3), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
 /// )
 /// ```
 ///
 /// -> content
 #let anchored-points(
-  /// Couples (origine, label-text), un par point — label-text peut valoir none.
+  /// Par point : une coordonnée nue (x, y) / une ancre, ou un couple (origine, label-text) — label-text peut valoir none.
   /// -> array
   ..points,
-  
-  /// Options de marqueur partagées, voir anchored-point ; none = aucun marqueur du tout.
+
+  /// Options de marqueur partagées (vocabulaire marker-* ou cetz mark:*), voir anchored-point ; none = aucun marqueur du tout.
   /// -> dictionary | none
   marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
-  
+
   /// Options d'étiquette partagées (label-text ici est surchargé par point, label-styles est déversé dans text()), voir anchored-point ; none = aucune étiquette du tout.
   /// -> dictionary | none
-  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
+  label: (
+    label-text: "",
+    label-distance: 8pt,
+    label-anchor: "center",
+    label-position: 0deg,
+    label-rotate: 0deg,
+    label-styles: (:),
+  ),
 ) = {
-  for (origine, txt) in points.pos() {
+  for item in points.pos() {
+    // Détection du type de chaque élément :
+    //  - coordonnée nue (x, y) ou ancre nue "plot.<nom>" → pas de label ;
+    //  - sinon paire (origine, label-text), label-text pouvant être none.
+    let (origine, txt) = if _is-bare-coord(item) or type(item) == str {
+      (item, none)
+    } else {
+      (item.at(0), item.at(1))
+    }
     let this-label = if label == none or txt == none {
       none
     } else {
