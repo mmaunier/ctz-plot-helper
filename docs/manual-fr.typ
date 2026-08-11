@@ -1,13 +1,13 @@
 #import "@preview/tidy:0.4.3"
 #import "@preview/cetz-plot:0.1.4": plot
 #import "@preview/cetz:0.5.2": canvas, draw
-#import "@local/ctz-plot-helper:0.1.0" : newFig, setAxes, setExtraStyles, anchored-point-marker, anchored-derivative-arrow, anchored-lines
+#import "@local/ctz-plot-helper:0.1.1" : newFig, setAxes, setExtraStyles, anchored-point, anchored-derivative-arrow, anchored-lines
 
 // Parse the module containing your doc-comments
 #let docs = tidy.parse-module(
-  read("../src/ctz-plot-helper.typ"),
+  read("../src/ctz-plot-helper-fr.typ"),
   name: "ctz-plot-helper — manual",
-  preamble: "#import \"@local/ctz-plot-helper:0.1.0\": *\n",
+  preamble: "#import \"@local/ctz-plot-helper:0.1.1\": *\n",
 )
 
 // Render the documentation using a predefined style
@@ -42,7 +42,7 @@
     let yp(x) = x
 
     anchored-lines((0, y(x1)), (x1, y(x1)), (x1, 0), stroke: (thickness: 0.75pt, dash: "dashed", paint: red))
-    anchored-point-marker(
+    anchored-point(
       (x1, y(x1)),
       marker: (marker-fill: red, marker-size: 0.04),
       label: (
@@ -53,7 +53,7 @@
     anchored-derivative-arrow((x1, y(x1)), yp(x1), length: 2, fill: red, stroke: red + 1.2pt)
 
     anchored-lines((0, y(x2)), (x2, y(x2)), (x2, 0), stroke: (thickness: 0.75pt, dash: "dashed", paint: purple))
-    anchored-point-marker(
+    anchored-point(
       (x2, y(x2)),
       marker: (marker-symbol: "+", marker-stroke: purple + .5pt),
       label: (
