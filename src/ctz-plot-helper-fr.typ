@@ -1,4 +1,4 @@
-#import "@preview/cetz:0.5.2": draw, coordinate, canvas
+#import "@preview/cetz:0.5.2": canvas, coordinate, draw
 #import "@preview/cetz-plot:0.1.4": plot
 
 /// Fait tourner le point (x, y) de `angle` autour du centre (cx, cy).
@@ -39,7 +39,7 @@
 
 /// Dessine la "marque" d'un point à une position DÉJÀ EN COORDONNÉES DU
 /// CANVAS (x, y en cm). Choix de forme partagé entre point-marker (dessine
-/// en unités de données, dans plot.annotate) et anchored-point-marker
+/// en unités de données, dans plot.annotate) et anchored-point
 /// (dessine en cm, hors du plot). Ne pas appeler directement en temps normal.
 ///
 /// - x (float, int): abscisse du point, en unités canvas
@@ -264,7 +264,7 @@
 /// Résout `origine` en position CANVAS (cm) : soit une ancre existante
 /// ("plot.<nom>"), soit des coordonnées (x, y) en unités du repère
 /// (O ; i, j) — auquel cas on part de l'ancre "plot.O" et on applique
-/// sx, sy. Utilisé par anchored-basis-vectors, anchored-point-marker et
+/// sx, sy. Utilisé par anchored-basis-vectors, anchored-point et
 /// anchored-derivative-arrow ; pas destiné à être appelé directement.
 ///
 /// - ctx (dictionary): contexte cetz courant (fourni par get-ctx)
@@ -370,23 +370,23 @@
 ///
 /// - origine (str, array): ancre "plot.<nom>", ou (x, y) en unités de données
 /// - marker (dictionary, none): (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle) — voir draw-mark-shape ; none = pas de point
-/// - label (dictionary, none): (label-text, label-distance, label-anchor, label-position) ; none = pas d'étiquette
+/// - label (dictionary, none): (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = pas d'étiquette
 ///
 /// ```example
 /// #newFig(
 ///   extra: (sx, sy) => {
 ///     import draw: *
 ///     // marqueur + étiquette (chacun est optionnel)
-///     anchored-point-marker((1, 1), marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
-///     // étiquette seule, sans point
-///     anchored-point-marker((-1, 1), marker: (marker-symbol: "x", marker-size: 0.06, marker-stroke: 1pt+purple), label: (label-text: text(fill: purple)[B], label-position: -135deg))
+///     anchored-point((1, 1), marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
+///     // étiquette seule, sans point, tournée de 20°
+///     anchored-point((-1, 1), marker: (marker-symbol: "x", marker-size: 0.06, marker-stroke: 1pt+purple), label: (label-text: text(fill: purple)[B], label-position: -135deg, label-rotate: 20deg))
 ///   },
 ///   { plot.add(domain: (-2, 2), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
 /// )
 /// ```
 ///
 /// -> content
-#let anchored-point-marker(
+#let anchored-point(
   /// Ancre "plot.<nom>", ou (x, y) en unités de données.
   /// -> string | array
   origine,
@@ -395,11 +395,11 @@
   /// -> dictionary | none
   marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
 
-  /// (label-text, label-distance, label-anchor, label-position) ; none = pas d'étiquette.
+  /// (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = pas d'étiquette.
   /// -> dictionary | none
-  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg),
+  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
 ) = {
-  import draw: get-ctx, content
+  import draw: content, get-ctx
 
   // Rien à dessiner : on ne fait rien du tout
   if marker == none and label == none {
@@ -415,7 +415,7 @@
   let l = if label == none {
     none
   } else {
-    (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg) + label
+    (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)) + label
   }
 
   get-ctx(ctx => {
@@ -426,7 +426,8 @@
     // Marqueur (point), dessiné à (x, y) si demandé
     if m != none {
       draw-mark-shape(
-        x, y,
+        x,
+        y,
         symbol: m.marker-symbol,
         size: m.marker-size,
         fill: m.marker-fill,
@@ -437,13 +438,13 @@
 
     // Étiquette, placée à `label-distance` du point dans la direction
     // `label-position` (0deg = droite, 90deg = haut...), avec `label-anchor`
-    // comme ancre du texte à cette position
+    // comme ancre du texte à cette position, et tournée de `label-rotate`
+    // autour de son propre centre
     if l != none {
-      let body = if type(l.label-text) == str {
-        text(l.label-text)
-      } else {
-        l.label-text
-      }
+      // label-styles est injecté dans text(...) : un contenu avec ses propres
+      // styles (ex. text(fill: purple)[B]) garde la priorité ; label-styles ne
+      // comble que ce qui n'est pas déjà précisé.
+      let body = text(..l.label-styles, l.label-text)
       // distance en unités canvas (1 unité = 1 cm) : une longueur (pt, cm...)
       // est convertie ; un nombre brut est pris tel quel (déjà en cm)
       let dist = if type(l.label-distance) == length {
@@ -454,42 +455,70 @@
       content(
         (x + dist * calc.cos(l.label-position), y + dist * calc.sin(l.label-position)),
         anchor: l.label-anchor,
+        angle: l.label-rotate,
         body,
       )
     }
   })
 }
 
-/// Cas particulier de anchored-point-marker : un simple rond. Gardé pour
-/// compatibilité — préfère anchored-point-marker si tu veux choisir la
-/// forme.
+
+/// Dessine plusieurs points (et, optionnellement, leurs étiquettes) en un
+/// seul appel. Chaque élément est un couple (origine, label-text) — même
+/// vocabulaire `origine` que anchored-point (ancre "plot.<nom>",
+/// ou (x, y) en unités de données), et label-text est soit le texte/contenu
+/// de l'étiquette DE CE point, soit `none` pour sauter l'étiquette de ce
+/// point précisément. Les options `marker:`/`label:` sont partagées par
+/// tous les points (même vocabulaire que anchored-point) —
+/// `label: none` (ou `marker: none`) désactive les étiquettes (ou les
+/// marqueurs) pour TOUS les points d'un coup, quel que soit le label-text
+/// de chaque couple. Les options `label:` partagées acceptent aussi
+/// `label-styles`, un dictionnaire déversé dans `text(...)` pour styler
+/// toutes les étiquettes d'un coup (un `label-text` explicitement stylé
+/// reste prioritaire).
 ///
-/// - origine (str, array): ancre "plot.<nom>", ou (x, y) en unités de données
-/// - radius (float, int): rayon du rond, en cm
-/// - fill (color): couleur de remplissage
-/// - stroke (none, stroke, color): contour (none = pas de contour)
+/// - points (array): couples (origine, label-text), un par point — label-text peut valoir none
+/// - marker (dictionary, none): options de marqueur partagées, voir anchored-point ; none = aucun marqueur du tout
+/// - label (dictionary, none): options d'étiquette partagées (label-text ici est surchargé par point, label-styles injecté dans text()), voir anchored-point ; none = aucune étiquette du tout
+///
+/// ```example
+/// #newFig(
+///   extra: (sx, sy) => {
+///     import draw: *
+///     anchored-points(
+///       ((1, 1), "A"),
+///       ((2, 4), "B"),
+///       ((3, 2), none), // marker seul, pas de label pour ce point
+///       marker: (marker-fill: red),
+///       label: (label-position: 90deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
+///     )
+///   },
+///   { plot.add(domain: (-2, 2), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
+/// )
+/// ```
+///
 /// -> content
-#let anchored-point(
-  /// Ancre "plot.<nom>", ou (x, y) en unités de données.
-  /// -> string | array
-  origine,
-
-  /// Rayon du rond, en cm.
-  /// -> float | int
-  radius: 0.1,
-
-  /// Couleur de remplissage.
-  /// -> color
-  fill: red,
+#let anchored-points(
+  /// Couples (origine, label-text), un par point — label-text peut valoir none.
+  /// -> array
+  ..points,
   
-  /// Contour (none = pas de contour).
-  /// -> none | stroke | color
-  stroke: none,
+  /// Options de marqueur partagées, voir anchored-point ; none = aucun marqueur du tout.
+  /// -> dictionary | none
+  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
+  
+  /// Options d'étiquette partagées (label-text ici est surchargé par point, label-styles est déversé dans text()), voir anchored-point ; none = aucune étiquette du tout.
+  /// -> dictionary | none
+  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
 ) = {
-  anchored-point-marker(
-    origine,
-    marker: (marker-symbol: "o", marker-size: radius, marker-fill: fill, marker-stroke: stroke),
-  )
+  for (origine, txt) in points.pos() {
+    let this-label = if label == none or txt == none {
+      none
+    } else {
+      label + (label-text: txt)
+    }
+    anchored-point(origine, marker: marker, label: this-label)
+  }
 }
 
 /// Flèche de dérivée à taille FIXE (cm), avec la pente corrigée pour
@@ -598,7 +627,7 @@
   /// -> float | int
   mark-scale: .5,
 ) = {
-  import draw: get-ctx, line, content
+  import draw: content, get-ctx, line
 
   let stroke = if stroke == auto { fill + 1pt } else { stroke }
   let mark = (start: "stealth", end: "stealth", scale: mark-scale, fill: fill)
@@ -643,7 +672,7 @@
 #let setExtraStyles(
   /// Style de la pointe de flèche de l'axe des abscisses.
   /// -> dictionary
-  x: (mark: (end: "stealth", fill: black),),
+  x: (mark: (end: "stealth", fill: black)),
 
   /// Style de la pointe de flèche de l'axe des ordonnées.
   /// -> dictionary
@@ -895,7 +924,7 @@
 ///   // contenu HORS plot, dans le canvas (accès à sx, sy)
 ///   extra: (sx, sy) => {
 ///     import draw: *
-///     anchored-point-marker("plot.p0", marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
+///     anchored-point("plot.p0", marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
 ///     anchored-basis-vectors(fill: red)
 ///   },
 /// )
@@ -978,7 +1007,7 @@
     import draw: *
     
     // Rend sx, sy récupérables via get-ctx (utilisé par anchored-basis-vectors,
-    // anchored-point-marker...) sans avoir à les repasser en argument.
+    // anchored-point...) sans avoir à les repasser en argument.
     set-ctx(ctx => ctx + (helper-scale: (sx, sy)))
     
     set-style(axes: axes + extraStyles)

@@ -11,6 +11,7 @@ A Typst helper that simplifies drawing mathematical plots with [CeTZ](https://ce
 - **All-in-one figure builder** — `newFig(...)` computes the canvas scale factors for you, opens the canvas, applies the axis style, and runs your `plot.add(...)` / `plot.annotate(...)` calls.
 - **Automatic frame `(O ; vec(i), vec(j))`** — `repere: true` (default) draws the basis vectors and hides the redundant `"1"` tick labels; with `repere: false` the origin is labeled `0` instead of the red `O`.
 - **Anchored helpers drawn outside the plot** — place markers, labels, polylines and derivative arrows in *real canvas units* so they stay geometrically correct in an anisotropic frame.
+- **Bulk points in one call** — `anchored-points(...)` places several markers (and optional labels) at once, with shared `marker`/`label` options.
 - **Scale correction** — real slopes are converted to on-screen slopes (`anchored-derivative-arrow`), so tangents stay visually correct even when the x and y axes have different scales.
 - **No single-point marker bug** — `point-marker` draws isolated points inside `plot.annotate` with the same shape vocabulary as `plot.add`, without cetz-plot's single-point bug.
 - **Scatter plots in one call** — `scatter(...)` draws a marker at each point of a list, with a friendly marker vocabulary (`mark-fill`/`mark-stroke` instead of a raw `mark-style` dictionary).
@@ -57,7 +58,7 @@ If the package is installed locally:
     let yp(x) = x
 
     anchored-lines((0, y(x1)), (x1, y(x1)), (x1, 0), stroke: (thickness: 0.75pt, dash: "dashed", paint: red))
-    anchored-point-marker(
+    anchored-point(
       (x1, y(x1)),
       marker: (marker-fill: red, marker-size: 0.04),
       label: (
@@ -68,7 +69,7 @@ If the package is installed locally:
     anchored-derivative-arrow((x1, y(x1)), yp(x1), length: 2, fill: red, stroke: red + 1.2pt)
 
     anchored-lines((0, y(x2)), (x2, y(x2)), (x2, 0), stroke: (thickness: 0.75pt, dash: "dashed", paint: purple))
-    anchored-point-marker(
+    anchored-point(
       (x2, y(x2)),
       marker: (marker-symbol: "+", marker-stroke: purple + .5pt),
       label: (
@@ -172,12 +173,12 @@ Draws the two basis vectors of `(O ; vec(i), vec(j))`, with a length of `length`
 | `stroke` | `auto` \| `stroke` | `auto` | Stroke (`auto` = `fill + 1pt`) |
 | `mark-scale` | `float` \| `int` | `.5` | Arrowhead size |
 
-### `anchored-point-marker`
+### `anchored-point`
 
 Optional marker and/or label at a plot anchor OR at `(x, y)` coordinates in data units. Call it **outside** `plot.plot(...)`; it retrieves `sx`, `sy` automatically. Each item is independent: if `marker` or `label` is `none`, it is not drawn (both `none` → nothing at all).
 
 ```typst
-anchored-point-marker(
+anchored-point(
   (1, 1),
   marker: (marker-fill: red),
   label: (label-text: "A", label-position: 90deg),
@@ -188,18 +189,27 @@ anchored-point-marker(
 | --- | --- | --- | --- |
 | `origine` | `string` \| `array` | — | Anchor `"plot.<name>"`, or `(x, y)` in data units |
 | `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | `(marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle)` — see `draw-mark-shape`; `none` = no point |
-| `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg)` | `(label-text, label-distance, label-anchor, label-position)`; `none` = no label |
+| `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | `(label-text, label-distance, label-anchor, label-position, label-rotate, label-styles)`; `none` = no label |
 
-### `anchored-point`
+### `anchored-points`
 
-Special case of `anchored-point-marker`: a simple circle. Kept for compatibility.
+Places several points (and, optionally, their labels) in one call. Each item is a pair `(origine, label-text)` — same `origine` vocabulary as `anchored-point`, and `label-text` is either the text/content for that point's label, or `none` to skip the label for that point. The `marker:`/`label:` options are shared by every point; `label: none` (or `marker: none`) turns labels (or markers) off for **all** points at once.
+
+```typst
+anchored-points(
+  ((1, 1), "A"),
+  ((2, 4), "B"),
+  ((3, 2), none), // marker only, no label for this point
+  marker: (marker-fill: red),
+  label: (label-position: 90deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
+)
+```
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `origine` | `string` \| `array` | — | Anchor `"plot.<name>"`, or `(x, y)` in data units |
-| `radius` | `float` \| `int` | `0.1` | Radius of the circle, in cm |
-| `fill` | `color` | `red` | Fill color |
-| `stroke` | `none` \| `stroke` \| `color` | `none` | Outline (`none` = no outline) |
+| `..points` | `array` | — | Pairs `(origine, label-text)`, one per point — `label-text` may be `none` |
+| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Shared marker options, see `anchored-point`; `none` = no markers at all |
+| `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | Shared label options (`label-text` overridden per point), see `anchored-point`; `none` = no labels at all |
 
 ### `anchored-lines`
 
@@ -274,7 +284,7 @@ Scatter plot: draws a marker at each point of `points`. To be used like `plot.ad
 
 ### `draw-mark-shape`
 
-Draws the "mark" of a point at a position **already in canvas coordinates** (x, y in cm). Shared by `point-marker` and `anchored-point-marker`; do not call directly in normal use.
+Draws the "mark" of a point at a position **already in canvas coordinates** (x, y in cm). Shared by `point-marker` and `anchored-point`; do not call directly in normal use.
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -312,7 +322,7 @@ Internal helper. Resolves `origine` to a canvas position (cm): either an existin
 ## Troubleshooting
 
 - **`newFig` + custom `x-format`/`y-format`**: an `x-format`/`y-format` given in `plot:` takes precedence over the one controlled by `repere:`, but do **not** set both at once for the same key — Typst rejects a duplicate named argument.
-- **A partial `marker`/`label` dict replaces the whole default**: a partial dictionary passed to `anchored-point-marker` overrides the defaults — provide only the keys you want to change.
+- **A partial `marker`/`label` dict replaces the whole default**: a partial dictionary passed to `anchored-point` overrides the defaults — provide only the keys you want to change.
 - **Tidy-style doc comments**: this package uses the new tidy comment format (`///` above each parameter + `/// -> type`). Never put a trailing `//` comment after a documented parameter.
 
 ## License
@@ -320,3 +330,19 @@ Internal helper. Resolves `origine` to a canvas position (cm): either an existin
 This project is licensed under the [MIT License](LICENSE).
 
 **Authors:** Mikaël MAUNIER, DeepSeek, Claude.
+
+## Changelog
+
+The detailed history is in [`CHANGELOG.md`](CHANGELOG.md).
+
+### 0.1.1
+
+- **Added** `anchored-points(...)` to place several points (and optional labels) in one call.
+- **Added** `label-rotate` (and `label-styles`) options for `anchored-point` labels.
+- **Renamed** `anchored-point-marker` → `anchored-point`; the old simple-circle `anchored-point` was removed.
+- **Added** `scatter(...)` for one-call scatter plots.
+- **Changed** `repere: false` now labels the origin `0` instead of the red `O`.
+
+### 0.1.0
+
+- **Initial release.**

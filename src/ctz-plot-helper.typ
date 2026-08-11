@@ -1,4 +1,4 @@
-#import "@preview/cetz:0.5.2": draw, coordinate, canvas
+#import "@preview/cetz:0.5.2": canvas, coordinate, draw
 #import "@preview/cetz-plot:0.1.4": plot
 
 /// Rotates the point (x, y) by `angle` around the center (cx, cy).
@@ -13,19 +13,19 @@
   /// X-coordinate of the rotation center.
   /// -> float | int
   cx,
-
+  
   /// Y-coordinate of the rotation center.
   /// -> float | int
   cy,
-
+  
   /// X-coordinate of the point to rotate.
   /// -> float | int
   x,
-
+  
   /// Y-coordinate of the point to rotate.
   /// -> float | int
   y,
-
+  
   /// Rotation angle.
   /// -> angle
   angle,
@@ -39,7 +39,7 @@
 
 /// Draws the "mark" of a point at a position ALREADY IN CANVAS
 /// COORDINATES (x, y in cm). Shape choice shared between point-marker
-/// (draws in data units, inside plot.annotate) and anchored-point-marker
+/// (draws in data units, inside plot.annotate) and anchored-point
 /// (draws in cm, outside the plot). Do not call directly in normal use.
 ///
 /// - x (float, int): x-coordinate of the point, in canvas units
@@ -54,33 +54,33 @@
   /// X-coordinate of the point, in canvas units.
   /// -> float | int
   x,
-
+  
   /// Y-coordinate of the point, in canvas units.
   /// -> float | int
   y,
-
+  
   /// "o" (circle), "x" (cross), "+" (plus), "square" (square), "triangle", "diamond" (diamond).
   /// -> string
   symbol: "o",
-
+  
   /// Half-size of the symbol, in the same unit as x, y.
   /// -> float | int
   size: 0.06,
-
+  
   /// Fill color (closed shapes) or stroke color ("+"/"x").
   /// -> color
   fill: red,
-
+  
   /// Outline of closed shapes (none = no outline, just fill).
   /// -> none | stroke | color
   stroke: none,
-
+  
   /// Orientation (relevant for "square", "triangle", "diamond", "+", "x" — no effect on "o").
   /// -> angle
   angle: 0deg,
 ) = {
   import draw: circle, line
-
+  
   if symbol == "o" or symbol == "circle" {
     circle((x, y), radius: size, fill: fill, stroke: stroke)
   } else if symbol == "square" {
@@ -144,27 +144,27 @@
   /// X-coordinate of the point, in data units.
   /// -> float | int
   x,
-
+  
   /// Y-coordinate of the point, in data units.
   /// -> float | int
   y,
-
+  
   /// "o", "x", "+", "square", "triangle", "diamond".
   /// -> string
   symbol: "o",
-
+  
   /// Half-size of the symbol, in data units.
   /// -> float | int
   size: 0.06,
-
+  
   /// Fill color or stroke color.
   /// -> color
   fill: red,
-
+  
   /// Outline (none = no outline, just fill).
   /// -> none | stroke | color
   stroke: none,
-
+  
   /// Symbol orientation.
   /// -> angle
   angle: 0deg,
@@ -241,11 +241,11 @@
   /// Physical size of the plot (width, height), in cm.
   /// -> array
   size,
-
+  
   /// Domain (x-min, x-max) of the x-axis.
   /// -> array
   x-domain,
-
+  
   /// Domain (y-min, y-max) of the y-axis.
   /// -> array
   y-domain,
@@ -259,7 +259,7 @@
 /// Resolves `origine` to a CANVAS position (cm): either an existing anchor
 /// ("plot.<name>"), or (x, y) coordinates in the frame units (O ; i, j) —
 /// in which case it starts from the "plot.O" anchor and applies sx, sy.
-/// Used by anchored-basis-vectors, anchored-point-marker and
+/// Used by anchored-basis-vectors, anchored-point and
 /// anchored-derivative-arrow; not meant to be called directly.
 ///
 /// - ctx (dictionary): current cetz context (provided by get-ctx)
@@ -271,15 +271,15 @@
   /// Current cetz context (provided by get-ctx).
   /// -> dictionary
   ctx,
-
+  
   /// Anchor "plot.<name>", or (x, y) in data units.
   /// -> string | array
   origine,
-
+  
   /// Scale factor along x (cm per data unit).
   /// -> float | int
   sx,
-
+  
   /// Scale factor along y (cm per data unit).
   /// -> float | int
   sy,
@@ -324,19 +324,19 @@
   /// "plot.<name>" anchors and/or (x, y) coordinates, at least two.
   /// -> string | array
   ..points,
-
+  
   /// Line stroke.
   /// -> stroke
   stroke: black + 1pt,
-
+  
   /// Arrowheads at the ends (see line(mark:)).
   /// -> none | dictionary
   mark: none,
 ) = {
   import draw: get-ctx, line
-
+  
   let pts = points.pos()
-
+  
   get-ctx(ctx => {
     let (sx, sy) = ctx.at("helper-scale", default: (1, 1))
     let ctx = ctx
@@ -347,7 +347,7 @@
       let (x, y, ..) = pos
       canvas-pts.push((x, y))
     }
-
+    
     if mark == none {
       line(..canvas-pts, stroke: stroke)
     } else {
@@ -365,42 +365,42 @@
 ///
 /// - origine (str, array): anchor "plot.<name>", or (x, y) in data units
 /// - marker (dictionary, none): (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle) — see draw-mark-shape ; none = no point
-/// - label (dictionary, none): (label-text, label-distance, label-anchor, label-position) ; none = no label
+/// - label (dictionary, none): (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = no label
 ///
 /// ```example
 /// #newFig(
 ///   extra: (sx, sy) => {
 ///     import draw: *
 ///     // marker + label (each is optional)
-///     anchored-point-marker((1, 1), marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
-///     // label only, without a point
-///     anchored-point-marker((-1, 1), marker: (marker-symbol: "x", marker-size: 0.06, marker-stroke: 1pt+purple), label: (label-text: text(fill: purple)[B], label-position: -135deg))
+///     anchored-point((1, 1), marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
+///     // label only, without a point, rotated 20°
+///     anchored-point((-1, 1), marker: (marker-symbol: "x", marker-size: 0.06, marker-stroke: 1pt+purple), label: (label-text: text(fill: purple)[B], label-position: -135deg, label-rotate: 20deg))
 ///   },
 ///   { plot.add(domain: (-2, 2), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
 /// )
 /// ```
 ///
 /// -> content
-#let anchored-point-marker(
+#let anchored-point(
   /// Anchor "plot.<name>", or (x, y) in data units.
   /// -> string | array
   origine,
-
+  
   /// (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle) — see draw-mark-shape ; none = no point.
   /// -> dictionary | none
   marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
-
-  /// (label-text, label-distance, label-anchor, label-position) ; none = no label.
+  
+  /// (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = no label.
   /// -> dictionary | none
-  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg),
+  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
 ) = {
-  import draw: get-ctx, content
-
+  import draw: content, get-ctx
+  
   // Nothing to draw: do nothing at all
   if marker == none and label == none {
     return ()
   }
-
+  
   // Merge with default values: only provide the keys to override
   let m = if marker == none {
     none
@@ -410,18 +410,19 @@
   let l = if label == none {
     none
   } else {
-    (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg) + label
+    (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)) + label
   }
-
+  
   get-ctx(ctx => {
     let (sx, sy) = ctx.at("helper-scale", default: (1, 1))
     let (ctx, pos) = resolve-origine(ctx, origine, sx, sy)
     let (x, y, ..) = pos
-
+    
     // Marker (point), drawn at (x, y) if requested
     if m != none {
       draw-mark-shape(
-        x, y,
+        x,
+        y,
         symbol: m.marker-symbol,
         size: m.marker-size,
         fill: m.marker-fill,
@@ -429,16 +430,16 @@
         angle: m.marker-angle,
       )
     }
-
+    
     // Label, placed at `label-distance` from the point in the direction
     // `label-position` (0deg = right, 90deg = up...), with `label-anchor`
-    // as the text anchor at that position
+    // as the text anchor at that position, and rotated `label-rotate`
+    // around its own center
     if l != none {
-      let body = if type(l.label-text) == str {
-        text(l.label-text)
-      } else {
-        l.label-text
-      }
+      // label-styles is spread into text(...): content with its own styles
+      // (e.g. text(fill: purple)[B]) keeps priority; label-styles only fills
+      // in what is not already specified.
+      let body = text(..l.label-styles, l.label-text)
       // distance in canvas units (1 unit = 1 cm): a length (pt, cm...)
       // is converted; a raw number is taken as is (already in cm)
       let dist = if type(l.label-distance) == length {
@@ -449,42 +450,68 @@
       content(
         (x + dist * calc.cos(l.label-position), y + dist * calc.sin(l.label-position)),
         anchor: l.label-anchor,
+        angle: l.label-rotate,
         body,
       )
     }
   })
 }
 
-/// Special case of anchored-point-marker: a simple circle. Kept for
-/// compatibility — prefer anchored-point-marker if you want to choose the
-/// shape.
+
+/// Draws several points (and, optionally, their labels) in one call.
+/// Each item is a pair (origine, label-text) — same `origine` vocabulary
+/// as anchored-point (anchor "plot.<name>", or (x, y) in data
+/// units), and label-text is either the text/content for THIS point's
+/// label, or `none` to skip the label for that point specifically. The
+/// `marker:`/`label:` options are shared by every point (same vocabulary
+/// as anchored-point) — `label: none` (or `marker: none`) turns
+/// off labels (or markers) for ALL points at once, regardless of what
+/// each pair's label-text says. The shared `label:` options also accept
+/// `label-styles`, a dictionary spread into `text(...)` to style every
+/// label at once (an explicitly styled `label-text` keeps priority).
 ///
-/// - origine (str, array): anchor "plot.<name>", or (x, y) in data units
-/// - radius (float, int): radius of the circle, in cm
-/// - fill (color): fill color
-/// - stroke (none, stroke, color): outline (none = no outline)
+/// - points (array): pairs (origine, label-text), one per point — label-text may be none
+/// - marker (dictionary, none): shared marker options, see anchored-point ; none = no markers at all
+/// - label (dictionary, none): shared label options (label-text here is overridden per point, label-styles is spread into text()), see anchored-point ; none = no labels at all
+///
+/// ```example
+/// #newFig(
+///   extra: (sx, sy) => {
+///     import draw: *
+///     anchored-points(
+///       ((1, 1), "A"),
+///       ((2, 4), "B"),
+///       ((3, 2), none), // marker seul, pas de label pour ce point
+///       marker: (marker-fill: red),
+///       label: (label-position: 90deg, label-distance: 6pt, label-styles: (fill: blue, size: 0.8em)),
+///     )
+///   },
+///   { plot.add(domain: (-2, 2), x => calc.pow(x, 2), style: (stroke: blue + 0.5pt), samples: 50) },
+/// )
+/// ```
+///
 /// -> content
-#let anchored-point(
-  /// Anchor "plot.<name>", or (x, y) in data units.
-  /// -> string | array
-  origine,
-
-  /// Radius of the circle, in cm.
-  /// -> float | int
-  radius: 0.1,
-
-  /// Fill color.
-  /// -> color
-  fill: red,
-
-  /// Outline (none = no outline).
-  /// -> none | stroke | color
-  stroke: none,
+#let anchored-points(
+  /// Pairs (origine, label-text), one per point — label-text may be none.
+  /// -> array
+  ..points,
+  
+  /// Shared marker options, see anchored-point ; none = no markers at all.
+  /// -> dictionary | none
+  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
+  
+  /// Shared label options (label-text here is overridden per point, label-styles is spread into text()), see anchored-point ; none = no labels at all.
+  /// -> dictionary | none
+  label: (label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:)),
 ) = {
-  anchored-point-marker(
-    origine,
-    marker: (marker-symbol: "o", marker-size: radius, marker-fill: fill, marker-stroke: stroke),
-  )
+  for (origine, txt) in points.pos() {
+    let this-label = if label == none or txt == none {
+      none
+    } else {
+      label + (label-text: txt)
+    }
+    anchored-point(origine, marker: marker, label: this-label)
+  }
 }
 
 /// Derivative arrow with a FIXED size (cm), with the slope corrected to
@@ -515,23 +542,23 @@
   /// Anchor "plot.<name>", or (x, y) in data units.
   /// -> string | array
   origine,
-
+  
   /// REAL slope in data units (e.g. spline-dy(...)).
   /// -> float | int
   slope,
-
+  
   /// Arrow color.
   /// -> color
   fill: black,
-
+  
   /// FIXED length of the arrow, in cm.
   /// -> float | int
   length: 1,
-
+  
   /// Stroke thickness/color.
   /// -> stroke
   stroke: 1pt,
-
+  
   /// Arrowhead size.
   /// -> float | int
   mark-scale: .6,
@@ -542,13 +569,13 @@
     let (sx, sy) = ctx.at("helper-scale", default: (1, 1))
     let (ctx, pos) = resolve-origine(ctx, origine, sx, sy)
     let (x, y, ..) = pos // x/y of the origin, in canvas units
-
+    
     // slope "adjusted" to the real drawing scale
     let screen-slope = slope * (sy / sx)
     let norm = calc.sqrt(1 + screen-slope * screen-slope)
     let dx = (length / 2) / norm
     let dy = dx * screen-slope
-
+    
     line((x - dx, y - dy), (x + dx, y + dy), stroke: stroke, mark: mark)
   })
 }
@@ -572,37 +599,37 @@
   /// Anchor "plot.<name>" ("plot.O" by default), or (x, y) in data units.
   /// -> string | array
   origine: "plot.O",
-
+  
   /// Length of vec(i), in data units.
   /// -> float | int
   x-length: 1,
-
+  
   /// Length of vec(j), in data units.
   /// -> float | int
   y-length: 1,
-
+  
   /// Color of the arrows and labels.
   /// -> color
   fill: red,
-
+  
   /// Stroke (auto = fill + 1pt).
   /// -> auto | stroke
   stroke: auto,
-
+  
   /// Arrowhead size.
   /// -> float | int
   mark-scale: .5,
 ) = {
-  import draw: get-ctx, line, content
-
+  import draw: content, get-ctx, line
+  
   let stroke = if stroke == auto { fill + 1pt } else { stroke }
   let mark = (start: "stealth", end: "stealth", scale: mark-scale, fill: fill)
-
+  
   get-ctx(ctx => {
     let (sx, sy) = ctx.at("helper-scale", default: (1, 1))
     let (ctx, pos) = resolve-origine(ctx, origine, sx, sy)
     let (x, y, ..) = pos
-
+    
     // 1 data unit = sx cm in x, sy cm in y.
     // A single continuous polyline (i) -- (O) -- (j), no step at O.
     line(
@@ -612,7 +639,7 @@
       stroke: stroke,
       mark: mark,
     )
-
+    
     // vec(i) south of the tip of i ; vec(j) west of the tip of j
     content(
       (x + x-length * sx, y),
@@ -638,8 +665,8 @@
 #let setExtraStyles(
   /// Style of the arrowhead of the x-axis.
   /// -> dictionary
-  x: (mark: (end: "stealth", fill: black),),
-
+  x: (mark: (end: "stealth", fill: black)),
+  
   /// Style of the arrowhead of the y-axis.
   /// -> dictionary
   y: (mark: (end: "stealth", fill: black)),
@@ -665,35 +692,35 @@
   /// Main grid style.
   /// -> stroke
   grid: (stroke: gray + 0.4pt),
-
+  
   /// Minor grid style.
   /// -> stroke
   minor-grid: (stroke: gray.lighten(60%) + 0.2pt),
-
+  
   /// Label shown at the common origin of both axes.
   /// -> content
   shared-zero: text(size: 8pt, fill: red)[$O$],
-
+  
   /// Offset beyond the axes.
   /// -> length
   padding: 0pt,
-
+  
   /// Overshoot of the axis arrowheads.
   /// -> length
   overshoot: 8pt,
-
+  
   /// Color/thickness of major ticks.
   /// -> stroke
   tick-stroke: black + 0.5pt,
-
+  
   /// Length of major ticks.
   /// -> float | int
   tick-length: 0.1,
-
+  
   /// Color/thickness of minor ticks.
   /// -> stroke
   tick-minor-stroke: gray + 0.3pt,
-
+  
   /// Length of minor ticks.
   /// -> float | int
   tick-minor-length: 0,
@@ -739,71 +766,71 @@
   /// Physical size of the plot (width, height), in cm.
   /// -> array
   size: (12, 6.5),
-
+  
   /// Lower bound of the x domain.
   /// -> float | int
   x-min: -3,
-
+  
   /// Upper bound of the x domain.
   /// -> float | int
   x-max: 3,
-
+  
   /// Lower bound of the y domain.
   /// -> float | int
   y-min: -3.5,
-
+  
   /// Upper bound of the y domain.
   /// -> float | int
   y-max: 3,
-
+  
   /// Name of the plot (for "plot.<name>" in plot.add-anchor).
   /// -> string
   name: "plot",
-
+  
   /// Step between two major graduations on x.
   /// -> float | int
   x-tick-step: 1,
-
+  
   /// Step between two minor graduations on x.
   /// -> float | int
   x-minor-tick-step: 0.1,
-
+  
   /// Step between two major graduations on y.
   /// -> float | int
   y-tick-step: 1,
-
+  
   /// Step between two minor graduations on y.
   /// -> float | int
   y-minor-tick-step: 0.1,
-
+  
   /// Axis style ("school-book", etc.).
   /// -> string
   axis-style: "school-book",
-
+  
   /// Formatting of the values shown on the x-axis.
   /// -> function
   x-format: v => if v != 1 { text(size: 8pt)[#v] },
-
+  
   /// Formatting of the values shown on the y-axis.
   /// -> function
   y-format: v => if v != 1 { text(size: 8pt)[#v] },
-
+  
   /// Label of the x-axis.
   /// -> content
   x-label: text(size: 0.8em)[$x$],
-
+  
   /// Label of the y-axis.
   /// -> content
   y-label: text(size: 0.8em)[$y$],
-
+  
   /// Vertical grid ("major", "minor", "both" or none).
   /// -> string | none
   x-grid: "both",
-
+  
   /// Horizontal grid ("major", "minor", "both" or none).
   /// -> string | none
   y-grid: "both",
-
+  
   /// Extra parameters forwarded as is to plot.plot.
   /// -> any
   ..more,
@@ -842,7 +869,7 @@
   /// Options of plot.plot, typically produced by setPlot(...).
   /// -> dictionary
   options,
-
+  
   /// Content placed in plot.plot (plot.add, plot.add-anchor, plot.annotate...).
   /// -> content
   body,
@@ -889,7 +916,7 @@
 ///   // content OUTSIDE the plot, inside the canvas (access to sx, sy)
 ///   extra: (sx, sy) => {
 ///     import draw: *
-///     anchored-point-marker("plot.p0", marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
+///     anchored-point("plot.p0", marker: (marker-fill: red), label: (label-text: "A", label-position: 90deg))
 ///     anchored-basis-vectors(fill: red)
 ///   },
 /// )
@@ -899,49 +926,49 @@
   /// Physical dimensions of the plot (width, height), in cm.
   /// -> array
   size: (12.0, 6.5),
-
+  
   /// Lower bound of the x domain.
   /// -> float|int
   x-min: -3.0,
-
+  
   /// Upper bound of the x domain.
   /// -> float|int
   x-max: 3.0,
-
+  
   /// Lower bound of the y domain.
   /// -> float|int
   y-min: -3.5,
-
+  
   /// Upper bound of the y domain.
   /// -> float|int
   y-max: 3.0,
-
+  
   /// Axis style, see setAxes().
   /// -> dictionary
   axes: setAxes(),
-
+  
   /// Styles of the basis arrows (i, j), see setExtraStyles().
   /// -> dictionary
   extraStyles: setExtraStyles(),
-
+  
   /// Shows/hides (O ; vec(i), vec(j)) and the "1" graduation ; if false, the origin is labeled "0" (without the red of O).
   /// -> bool
   repere: true,
-
+  
   /// Override of the setPlot() options (e.g. (x-tick-step: 0.5)).
   /// -> dictionary
   plot: (:),
-
+  
   /// (sx, sy) => content, drawn after the plot, inside the canvas.
   /// -> function | none
   extra: none,
-
+  
   /// Content placed INSIDE plot.plot (plot.add, plot.add-anchor, plot.annotate...).
   /// -> content
   body,
 ) = {
   let (sx, sy) = plot-scale(size, (x-min, x-max), (y-min, y-max))
-
+  
   // With repere: true, the value "1" is hidden (the i, j arrows already
   // show it) ; with repere: false, everything is shown, "1" included.
   let tick-format = if repere {
@@ -949,14 +976,14 @@
   } else {
     v => text(size: 8pt)[#v]
   }
-
+  
   // With repere: false, the origin is labeled "0" (without the red of O).
   let axes = if repere {
     axes
   } else {
     axes + (shared-zero: text(size: 8pt)[$0$])
   }
-
+  
   let plot-options = setPlot(
     size: size,
     x-min: x-min,
@@ -967,22 +994,22 @@
     y-format: tick-format,
     ..plot,
   )
-
+  
   canvas({
     import draw: *
-
+    
     // Makes sx, sy retrievable via get-ctx (used by anchored-basis-vectors,
-    // anchored-point-marker...) without having to pass them again.
+    // anchored-point...) without having to pass them again.
     set-ctx(ctx => ctx + (helper-scale: (sx, sy)))
-
+    
     set-style(axes: axes + extraStyles)
-
+    
     monplot(plot-options, body)
-
+    
     if extra != none {
       extra(sx, sy)
     }
-
+    
     if repere {
       anchored-basis-vectors(fill: red)
     }
