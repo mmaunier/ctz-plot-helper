@@ -13,7 +13,8 @@ A Typst helper that simplifies drawing mathematical plots with [CeTZ](https://ce
 - **Anchored helpers drawn outside the plot** — place markers, labels, polylines and derivative arrows in *real canvas units* so they stay geometrically correct in an anisotropic frame.
 - **Bulk points in one call** — `anchored-points(...)` places several markers (and optional labels) at once, with shared `marker`/`label` options.
 - **Scale correction** — real slopes are converted to on-screen slopes (`anchored-derivative-arrow`), so tangents stay visually correct even when the x and y axes have different scales.
-- **No single-point marker bug** — `point-marker` draws isolated points inside `plot.annotate` with the same shape vocabulary as `plot.add`, without cetz-plot's single-point bug.
+- **Named plots** — `resolve-origine` reads the plot name from the context (`plot: (name: ...)`), so several differently-named plots can live side by side in one canvas.
+- **Safe marker colors** — `draw-mark-shape` defaults to `fill: auto` (red) and panics with a clear message if you pass an explicit `fill` to a stroke symbol (`"+"`/`"x"`); use `stroke` instead.
 - **Scatter plots in one call** — `scatter(...)` draws a marker at each point of a list, with a friendly marker vocabulary (`mark-fill`/`mark-stroke` instead of a raw `mark-style` dictionary).
 
 ## Requirements
@@ -166,7 +167,7 @@ Draws the two basis vectors of `(O ; vec(i), vec(j))`, with a length of `length`
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `origine` | `string` \| `array` | `"plot.O"` | Anchor `"plot.<name>"`, or `(x, y)` in data units |
+| `origine` | `string` \| `array` | `auto` | Anchor `"plot.<name>"`, or `(x, y)` in data units; `auto` = `"<plot-name>.O"` (default plot name `"plot"`) |
 | `x-length` | `float` \| `int` | `1` | Length of `vec(i)`, in data units |
 | `y-length` | `float` \| `int` | `1` | Length of `vec(j)`, in data units |
 | `fill` | `color` | `red` | Color of the arrows and labels |
@@ -188,7 +189,7 @@ anchored-point(
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `origine` | `string` \| `array` | — | Anchor `"plot.<name>"`, or `(x, y)` in data units |
-| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Marker dict — **two accepted vocabularies**: internal (`marker-symbol`, `marker-size`, `marker-fill`, `marker-stroke`, `marker-angle`) or cetz/`plot.add` style (`mark`, `mark-fill`, `mark-stroke`, `mark-size`); see `draw-mark-shape`; `none` = no point |
+| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: auto, marker-stroke: none, marker-angle: 0deg)` | Marker dict — **two accepted vocabularies**: internal (`marker-symbol`, `marker-size`, `marker-fill`, `marker-stroke`, `marker-angle`) or cetz/`plot.add` style (`mark`, `mark-fill`, `mark-stroke`, `mark-size`); see `draw-mark-shape`; `none` = no point |
 | `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | `(label-text, label-distance, label-anchor, label-position, label-rotate, label-styles)`; `none` = no label |
 
 ### `anchored-points`
@@ -212,7 +213,7 @@ anchored-points(
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `..points` | `array` | — | Per point: a bare `(x, y)` / anchor string, or a pair `(origine, label-text)` — `label-text` may be `none` |
-| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg)` | Shared marker options (`marker-*` or cetz `mark:*` vocabulary), see `anchored-point`; `none` = no markers at all |
+| `marker` | `dictionary` \| `none` | `(marker-symbol: "o", marker-size: 0.06, marker-fill: auto, marker-stroke: none, marker-angle: 0deg)` | Shared marker options (`marker-*` or cetz `mark:*` vocabulary), see `anchored-point`; `none` = no markers at all |
 | `label` | `dictionary` \| `none` | `(label-text: "", label-distance: 8pt, label-anchor: "center", label-position: 0deg, label-rotate: 0deg, label-styles: (:))` | Shared label options (`label-text` overridden per point), see `anchored-point`; `none` = no labels at all |
 
 ### `anchored-lines`
@@ -241,19 +242,6 @@ anchored-derivative-arrow((1, 1), 2, fill: red, stroke: red + 1.2pt)
 | `length` | `float` \| `int` | `1` | Fixed length of the arrow, in cm |
 | `stroke` | `stroke` | `1pt` | Stroke thickness/color |
 | `mark-scale` | `float` \| `int` | `.6` | Arrowhead size |
-
-### `point-marker`
-
-Marks a single point `(x, y)` **in data units** — to be used **inside** `plot.annotate`. Same shape vocabulary as `plot.add(mark:)`, but without its single-point bug.
-
-| Parameter | Type | Default | Description |
-| --- | --- | --- | --- |
-| `x`, `y` | `float` \| `int` | — | Coordinates of the point, in data units |
-| `symbol` | `string` | `"o"` | `"o"`, `"x"`, `"+"`, `"square"`, `"triangle"`, `"diamond"` |
-| `size` | `float` \| `int` | `0.06` | Half-size of the symbol, in data units |
-| `fill` | `color` | `red` | Fill color or stroke color |
-| `stroke` | `none` \| `stroke` \| `color` | `none` | Outline (`none` = no outline, just fill) |
-| `angle` | `angle` | `0deg` | Symbol orientation |
 
 ### `scatter`
 
@@ -288,14 +276,14 @@ Scatter plot: draws a marker at each point of `points`. To be used like `plot.ad
 
 ### `draw-mark-shape`
 
-Draws the "mark" of a point at a position **already in canvas coordinates** (x, y in cm). Shared by `point-marker` and `anchored-point`; do not call directly in normal use.
+Draws the "mark" of a point at a position **already in canvas coordinates** (x, y in cm). Shared by `anchored-point`; do not call directly in normal use.
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `x`, `y` | `float` \| `int` | — | Coordinates of the point, in canvas units |
 | `symbol` | `string` | `"o"` | `"o"`, `"x"`, `"+"`, `"square"`, `"triangle"`, `"diamond"` |
 | `size` | `float` \| `int` | `0.06` | Half-size of the symbol, in the same unit as x, y |
-| `fill` | `color` | `red` | Fill color (closed shapes) or stroke color (`"+"`/`"x"`) |
+| `fill` | `color` \| `auto` | `auto` | Fill color for closed shapes (`auto` = `red`). Must NOT be set for `"+"`/`"x"` (strokes) — use `stroke` instead; an explicit `fill` with `"+"`/`"x"` panics |
 | `stroke` | `none` \| `stroke` \| `color` | `none` | Outline of closed shapes |
 | `angle` | `angle` | `0deg` | Orientation (relevant for `"square"`, `"triangle"`, `"diamond"`, `"+"`, `"x"`) |
 
@@ -321,7 +309,7 @@ Rotates the point `(x, y)` by `angle` around the center `(cx, cy)`.
 
 ### `resolve-origine`
 
-Internal helper. Resolves `origine` to a canvas position (cm): either an existing anchor `"plot.<name>"`, or `(x, y)` in data units from `"plot.O"`. Not meant to be called directly.
+Internal helper. Resolves `origine` to a canvas position (cm): either an existing anchor `"plot.<name>"`, or `(x, y)` in data units from `"<plot-name>.O"` (plot name read from the context, set by `newFig`). Not meant to be called directly.
 
 ## Troubleshooting
 
@@ -338,6 +326,12 @@ This project is licensed under the [MIT License](LICENSE).
 ## Changelog
 
 The detailed history is in [`CHANGELOG.md`](CHANGELOG.md).
+
+### 0.1.2
+
+- **Fixed** `resolve-origine` now reads the plot name from the context instead of the hard-coded `"plot.O"`; `newFig` sets it via `set-ctx`, and `anchored-basis-vectors` defaults to `origine: auto` (resolved to `"<plot-name>.O"`). Plots can now be named freely (`plot: (name: "plotB")`).
+- **Fixed** `draw-mark-shape` now defaults to `fill: auto` and panics with a clear message if an explicit `fill` is passed to a stroke symbol (`"+"`/`"x"`) — use `stroke` instead. The `auto` default was propagated to `_normalize-marker` and to the `marker:` defaults of `anchored-point`/`anchored-points`.
+- **Removed** `point-marker`, an exact duplicate of `draw-mark-shape`; replace any call with `draw-mark-shape`.
 
 ### 0.1.1
 

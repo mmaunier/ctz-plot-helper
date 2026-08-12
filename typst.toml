@@ -1,7 +1,7 @@
 # typst.toml
 [package]
 name = "ctz-plot-helper"
-version = "0.1.1"
+version = "0.1.2"
 entrypoint = "src/ctz-plot-helper.typ"
 authors = ["Mikaël MAUNIER", "Claude", "DeepSeek"]
 license = "MIT"

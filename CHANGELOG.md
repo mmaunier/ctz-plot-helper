@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-08-12
+
+### Fixed
+
+- `resolve-origine` now reads the plot name from the context (`plot-name`, set by `newFig` via `set-ctx`) instead of the hard-coded `"plot.O"`. `anchored-basis-vectors` defaults to `origine: auto`, resolved dynamically to `"<plot-name>.O"`. Plots can now be named freely (`plot: (name: "plotB")`).
+- `draw-mark-shape` now defaults to `fill: auto` (resolved to `red`); passing an explicit `fill` to a stroke symbol (`"+"`/`"x"`) panics with a clear message pointing to `stroke`. The `auto` default was propagated to `_normalize-marker` and to the `marker:` defaults of `anchored-point`/`anchored-points`.
+
+### Removed
+
+- `point-marker`, an exact duplicate of `draw-mark-shape`. Replace any call with `draw-mark-shape`.
+
 ## [0.1.1] - 2026-08-11
 
 ### Added

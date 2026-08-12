@@ -38,15 +38,14 @@
 }
 
 /// Draws the "mark" of a point at a position ALREADY IN CANVAS
-/// COORDINATES (x, y in cm). Shape choice shared between point-marker
-/// (draws in data units, inside plot.annotate) and anchored-point
-/// (draws in cm, outside the plot). Do not call directly in normal use.
+/// COORDINATES (x, y in cm). Shared by anchored-point (draws in cm,
+/// outside the plot). Do not call directly in normal use.
 ///
 /// - x (float, int): x-coordinate of the point, in canvas units
 /// - y (float, int): y-coordinate of the point, in canvas units
 /// - symbol (str): "o" (circle), "x" (cross), "+" (plus), "square" (square), "triangle", "diamond" (diamond)
 /// - size (float, int): half-size of the symbol, in the same unit as x, y
-/// - fill (color): fill color (closed shapes) or stroke color ("+"/"x")
+/// - fill (color, auto): fill color for closed shapes ("o", "square", "diamond", "triangle") — NOT for "+"/"x" (strokes): use `stroke` instead, an explicit `fill` with "+"/"x" panics
 /// - stroke (none, stroke, color): outline of closed shapes (none = no outline, just fill)
 /// - angle (angle): orientation (relevant for "square", "triangle", "diamond", "+", "x" — no effect on "o")
 /// -> content
@@ -67,9 +66,9 @@
   /// -> float | int
   size: 0.06,
   
-  /// Fill color (closed shapes) or stroke color ("+"/"x").
-  /// -> color
-  fill: red,
+  /// Fill color for closed shapes; `auto` = red. Must NOT be set for "+"/"x" (use `stroke` instead).
+  /// -> color | auto
+  fill: auto,
   
   /// Outline of closed shapes (none = no outline, just fill).
   /// -> none | stroke | color
@@ -80,6 +79,15 @@
   angle: 0deg,
 ) = {
   import draw: circle, line
+
+  if (symbol == "+" or symbol == "x") and fill != auto {
+    panic(
+      "marker: the symbol '" + symbol + "' is a stroke, not a filled shape — "
+        + "use `stroke` to change its color, not `fill`.",
+    )
+  }
+
+  let fill = if fill == auto { red } else { fill }
   
   if symbol == "o" or symbol == "circle" {
     circle((x, y), radius: size, fill: fill, stroke: stroke)
@@ -127,56 +135,12 @@
   }
 }
 
-/// Marks a single point (x, y) IN DATA UNITS — to be used INSIDE
-/// plot.annotate (cetz-plot then handles the scaling itself).
-/// Same vocabulary of shapes as plot.add (mark:), but without its
-/// single-point bug. See draw-mark-shape for parameter details.
-///
-/// - x (float, int): x-coordinate of the point, in data units
-/// - y (float, int): y-coordinate of the point, in data units
-/// - symbol (str): "o", "x", "+", "square", "triangle", "diamond"
-/// - size (float, int): half-size of the symbol, in data units
-/// - fill (color): fill color or stroke color
-/// - stroke (none, stroke, color): outline (none = no outline, just fill)
-/// - angle (angle): symbol orientation
-/// -> content
-#let point-marker(
-  /// X-coordinate of the point, in data units.
-  /// -> float | int
-  x,
-  
-  /// Y-coordinate of the point, in data units.
-  /// -> float | int
-  y,
-  
-  /// "o", "x", "+", "square", "triangle", "diamond".
-  /// -> string
-  symbol: "o",
-  
-  /// Half-size of the symbol, in data units.
-  /// -> float | int
-  size: 0.06,
-  
-  /// Fill color or stroke color.
-  /// -> color
-  fill: red,
-  
-  /// Outline (none = no outline, just fill).
-  /// -> none | stroke | color
-  stroke: none,
-  
-  /// Symbol orientation.
-  /// -> angle
-  angle: 0deg,
-) = {
-  draw-mark-shape(x, y, symbol: symbol, size: size, fill: fill, stroke: stroke, angle: angle)
-}
 
 /// Scatter plot: draws a marker at each point of `points`. To be used
 /// like plot.add(...), INSIDE plot.plot(...) — i.e. directly inside
 /// newFig's `body` — coordinates stay in DATA units, cetz-plot handles
 /// the scaling itself. Thin wrapper around plot.add(...), with a
-/// friendlier point-marker vocabulary (mark-fill/mark-stroke instead of
+/// friendlier marker vocabulary (mark-fill/mark-stroke instead of
 /// a raw mark-style dictionary).
 ///
 /// - points (array): list of (x, y) point tuples, in data units
@@ -287,7 +251,8 @@
   if type(origine) == str {
     coordinate.resolve(ctx, origine)
   } else {
-    let (ctx, o) = coordinate.resolve(ctx, "plot.O")
+    let plot-name = ctx.at("plot-name", default: "plot")
+    let (ctx, o) = coordinate.resolve(ctx, plot-name + ".O")
     let (ox, oy, ..) = o
     let (dx, dy) = origine
     (ctx, (ox + dx * sx, oy + dy * sy))
@@ -377,13 +342,13 @@
     (
       marker-symbol: marker.at("mark", default: "o"),
       marker-size: marker.at("mark-size", default: 0.06),
-      marker-fill: marker.at("mark-fill", default: red),
+      marker-fill: marker.at("mark-fill", default: auto),
       marker-stroke: marker.at("mark-stroke", default: none),
       marker-angle: marker.at("marker-angle", default: 0deg),
     )
   } else {
     // internal style: simple merge with the defaults
-    (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg) + marker
+    (marker-symbol: "o", marker-size: 0.06, marker-fill: auto, marker-stroke: none, marker-angle: 0deg) + marker
   }
 }
 
@@ -422,7 +387,7 @@
   ///   - internal: (marker-symbol, marker-size, marker-fill, marker-stroke, marker-angle)
   ///   - cetz/plot.add style: (mark, mark-fill, mark-stroke, mark-size)
   /// -> dictionary | none
-  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
+  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: auto, marker-stroke: none, marker-angle: 0deg),
   
   /// (label-text, label-distance, label-anchor, label-position, label-rotate, label-styles) ; none = no label.
   /// -> dictionary | none
@@ -549,7 +514,7 @@
   
   /// Shared marker options (marker-* or cetz mark:* vocabulary), see anchored-point ; none = no markers at all.
   /// -> dictionary | none
-  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: red, marker-stroke: none, marker-angle: 0deg),
+  marker: (marker-symbol: "o", marker-size: 0.06, marker-fill: auto, marker-stroke: none, marker-angle: 0deg),
   
   /// Shared label options (label-text here is overridden per point, label-styles is spread into text()), see anchored-point ; none = no labels at all.
   /// -> dictionary | none
@@ -662,9 +627,9 @@
 /// - mark-scale (float, int): arrowhead size
 /// -> content
 #let anchored-basis-vectors(
-  /// Anchor "plot.<name>" ("plot.O" by default), or (x, y) in data units.
+  /// Anchor "plot.<name>", or (x, y) in data units; `auto` = "<plot-name>.O" (default plot name "plot").
   /// -> string | array
-  origine: "plot.O",
+  origine: auto,
   
   /// Length of vec(i), in data units.
   /// -> float | int
@@ -693,6 +658,8 @@
   
   get-ctx(ctx => {
     let (sx, sy) = ctx.at("helper-scale", default: (1, 1))
+    let plot-name = ctx.at("plot-name", default: "plot")
+    let origine = if origine == auto { plot-name + ".O" } else { origine }
     let (ctx, pos) = resolve-origine(ctx, origine, sx, sy)
     let (x, y, ..) = pos
     
@@ -1064,9 +1031,9 @@
   canvas({
     import draw: *
     
-    // Makes sx, sy retrievable via get-ctx (used by anchored-basis-vectors,
-    // anchored-point...) without having to pass them again.
-    set-ctx(ctx => ctx + (helper-scale: (sx, sy)))
+    // Makes sx, sy and plot-name retrievable via get-ctx (used by
+    // anchored-basis-vectors, anchored-point...) without passing them again.
+    set-ctx(ctx => ctx + (helper-scale: (sx, sy), plot-name: plot-options.name))
     
     set-style(axes: axes + extraStyles)
     
